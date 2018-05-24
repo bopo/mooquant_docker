@@ -1,0 +1,73 @@
+version: '2'
+
+services:
+  redis:
+    restart: always
+    image: redis:alpine
+  
+  nginx:
+    restart: always
+    image: nginx:alpine
+    depends_on:
+      - django
+    ports:
+      - "8880:80"
+    volumes:
+      - ./project/app:/app:Z  
+      - ./project/log:/var/log/nginx:Z
+      - ./project/etc/nginx.conf:/etc/nginx/nginx.conf:Z
+    env_file: ./project/app/env.docker
+
+  mongo:
+    restart: always
+    image: mongo:latest
+    volumes:
+      - ./project/dbs:/var/lib/postgresql:Z
+    env_file: ./project/app/env.docker
+
+  django:
+    restart: always
+    image: mooquant:0.2.6
+    depends_on:
+      - postgres
+      - redis
+    links:
+      - postgres
+      - redis
+    ports:
+      - "5005:5005"  
+      - "9009:9009"  
+    volumes:
+      - ./project/app:/app:Z
+      - ./project/log:/var/log/:Z
+      - ./project/app/env.docker:/app/.env:Z
+      - ./project/etc/supervisor:/etc/supervisor:Z
+    env_file: ./project/app/env.docker
+    command: /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
+    # python manage.py celery worker --loglevel=info &
+    # python manage.py celery flower &
+    # python manage.py runserver 0.0.0.0:8080 --noreload
+
+  notebook:
+    restart: always
+    image: notebook:mooquant
+    depends_on:
+      - postgres
+      - redis
+    links:
+      - postgres
+      - redis
+    ports:
+      - "5005:5005"  
+      - "9009:9009"  
+    volumes:
+      - ./project/app:/app:Z
+      - ./project/log:/var/log/:Z
+      - ./project/app/env.docker:/app/.env:Z
+      - ./project/etc/supervisor:/etc/supervisor:Z
+    env_file: ./project/app/env.docker
+    command: /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
+            # jupyter notebook --allow-root --generate-config
+            # #password='123456'
+            # echo "c.NotebookApp.password = u'sha1:99fe94ebc806:03a62bee4303e6db8ec0c9d03569365f46e0cc67'" >> /root/.jupyter/jupyter_notebook_config.py
+            # jupyter notebook --allow-root --port=8888 --ip=0.0.0.0  --notebook-dir=/notebook &

@@ -1,0 +1,16 @@
+*pyc
+MANIFEST
+/docs/_build
+.ipynb_checkpoints/
+/site
+.key
+.tox
+.idea
+.cache
+.coverage
+.ipynb_checkpoints
+.ropeproject
+
+/dist
+/build
+*.egg-info
